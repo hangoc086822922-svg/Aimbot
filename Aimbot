@@ -1,0 +1,269 @@
+-- ==========================================
+-- ESP (XUYÊN TƯỜNG) + SMART BODY AIMBOT & MENU
+-- ==========================================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- Cấu hình tính năng
+getgenv().ScriptConfig = {
+    AimbotEnabled = false,
+    ESPEnabled = false,
+    MaxDistance = 50, -- Khoảng cách tối đa (studs) để aim người trước mặt
+    MaxFOV = 65,      -- Góc nhìn trước mặt để kích hoạt aim
+    PartToAim = "HumanoidRootPart" -- Chỉ nhắm vào thân, KHÔNG aim đầu
+}
+
+-- ==========================================
+-- TẠO GIAO DIỆN MENU TRÊN MOBILE
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ESPAndBodyAimbotMenu"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.CoreGui
+
+-- Nút mở/đóng Menu (Floating Button)
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+ToggleButton.Position = UDim2.new(0, 20, 0, 100)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 144, 255)
+ToggleButton.Text = "MENU"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 12
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.Parent = ScreenGui
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleButton
+
+-- Khung Menu Chính
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 220, 0, 220)
+MainFrame.Position = UDim2.new(0, 80, 0, 100)
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 8)
+MainCorner.Parent = MainFrame
+
+-- Tiêu đề Menu
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Title.Text = " ESP + BODY AIMBOT"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 13
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 8)
+TitleCorner.Parent = Title
+
+-- Nút Bật/Tắt Aimbot trong Menu
+local AimToggleButton = Instance.new("TextButton")
+AimToggleButton.Size = UDim2.new(0, 200, 0, 40)
+AimToggleButton.Position = UDim2.new(0, 10, 0, 45)
+AimToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+AimToggleButton.Text = "Aimbot: OFF"
+AimToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+AimToggleButton.TextSize = 14
+AimToggleButton.Font = Enum.Font.SourceSansBold
+AimToggleButton.Parent = MainFrame
+
+local AimBtnCorner = Instance.new("UICorner")
+AimBtnCorner.CornerRadius = UDim.new(0, 6)
+AimBtnCorner.Parent = AimToggleButton
+
+-- Nút Bật/Tắt Nhìn Xuyên Tường (ESP) trong Menu
+local EspToggleButton = Instance.new("TextButton")
+EspToggleButton.Size = UDim2.new(0, 200, 0, 40)
+EspToggleButton.Position = UDim2.new(0, 10, 0, 95)
+EspToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+EspToggleButton.Text = "ESP (Xuyên Tường): OFF"
+EspToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+EspToggleButton.TextSize = 13
+EspToggleButton.Font = Enum.Font.SourceSansBold
+EspToggleButton.Parent = MainFrame
+
+local EspBtnCorner = Instance.new("UICorner")
+EspBtnCorner.CornerRadius = UDim.new(0, 6)
+EspBtnCorner.Parent = EspToggleButton
+
+-- Nút Bật/Tắt Fix Lag (Hỗ trợ tối ưu FPS)
+local FpsButton = Instance.new("TextButton")
+FpsButton.Size = UDim2.new(0, 200, 0, 40)
+FpsButton.Position = UDim2.new(0, 10, 0, 145)
+FpsButton.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+FpsButton.Text = "Fix Lag / Boost FPS"
+FpsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FpsButton.TextSize = 14
+FpsButton.Font = Enum.Font.SourceSansBold
+FpsButton.Parent = MainFrame
+
+local FpsBtnCorner = Instance.new("UICorner")
+FpsBtnCorner.CornerRadius = UDim.new(0, 6)
+FpsBtnCorner.Parent = FpsButton
+
+-- ==========================================
+-- XỬ LÝ SỰ KIỆN GIAO DIỆN (UI EVENTS)
+-- ==========================================
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+AimToggleButton.MouseButton1Click:Connect(function()
+    getgenv().ScriptConfig.AimbotEnabled = not getgenv().ScriptConfig.AimbotEnabled
+    if getgenv().ScriptConfig.AimbotEnabled then
+        AimToggleButton.Text = "Aimbot: ON"
+        AimToggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    else
+        AimToggleButton.Text = "Aimbot: ON" -- sửa lại hiển thị OFF
+        AimToggleButton.Text = "Aimbot: OFF"
+        AimToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    end
+end)
+
+-- Bật/Tắt tính năng ESP xuyên tường
+EspToggleButton.MouseButton1Click:Connect(function()
+    getgenv().ScriptConfig.ESPEnabled = not getgenv().ScriptConfig.ESPEnabled
+    if getgenv().ScriptConfig.ESPEnabled then
+        EspToggleButton.Text = "ESP (Xuyên Tường): ON"
+        EspToggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    else
+        EspToggleButton.Text = "ESP (Xuyên Tường): OFF"
+        EspToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    end
+end)
+
+FpsButton.MouseButton1Click:Connect(function()
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.Material = Enum.Material.SmoothPlastic
+            v.Reflectance = 0
+        elseif v:IsA("Decal") or v:IsA("Texture") then
+            v.Transparency = 1
+        end
+    end
+    FpsButton.Text = "Optimized! (FPS Boosted)"
+    FpsButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+end)
+
+-- ==========================================
+-- HỆ THỐNG XỬ LÝ ESP (XUYÊN TƯỜNG)
+-- ==========================================
+local espHighlights = {}
+
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    
+    local function addHighlight(char)
+        if espHighlights[player] then
+            espHighlights[player]:Destroy()
+            espHighlights[player] = nil
+        end
+        
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "ESP_Highlight"
+        highlight.Adornee = char
+        highlight.FillColor = Color3.fromRGB(255, 0, 0)      -- Màu bên trong người địch (Đỏ)
+        highlight.FillTransparency = 0.5                     -- Độ mờ bên trong
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 0) -- Màu viền (Vàng)
+        highlight.OutlineTransparency = 0                    -- Viền sắc nét hiển thị qua tường
+        highlight.Parent = char
+        
+        espHighlights[player] = highlight
+    end
+
+    player.CharacterAdded:Connect(function(char)
+        if getgenv().ScriptConfig.ESPEnabled then
+            addHighlight(char)
+        end
+    end)
+
+    if player.Character then
+        addHighlight(player.Character)
+    end
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+    CreateESP(p)
+end
+
+Players.PlayerAdded:Connect(function(p)
+    CreateESP(p)
+end)
+
+Players.PlayerRemoving:Connect(function(p)
+    if espHighlights[p] then
+        espHighlights[p]:Destroy()
+        espHighlights[p] = nil
+    end
+end)
+
+-- Cập nhật trạng thái bật/tắt ESP liên tục
+RunService.RenderStepped:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Character and player.Character:FindFirstChild("ESP_Highlight") then
+            player.Character.ESP_Highlight.Enabled = getgenv().ScriptConfig.ESPEnabled
+        end
+    end
+end)
+
+-- ==========================================
+-- HỆ THỐNG LỌC MỤC TIÊU CHO AIMBOT
+-- ==========================================
+local function GetTargetInFront()
+    local closestPart = nil
+    local shortestDistance = getgenv().ScriptConfig.MaxDistance
+
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+            local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")
+            local enemyPart = player.Character:FindFirstChild(getgenv().ScriptConfig.PartToAim)
+
+            if enemyRoot and enemyPart then
+                local distance = (myRoot.Position - enemyRoot.Position).Magnitude
+                if distance <= shortestDistance then
+                    local screenPoint, onScreen = Camera:WorldToViewportPoint(enemyPart.Position)
+                    
+                    if onScreen then
+                        local vectorScreen = Vector2.new(screenPoint.X, screenPoint.Y)
+                        local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                        local magnitudeScreen = (vectorScreen - centerScreen).Magnitude
+
+                        if magnitudeScreen <= (getgenv().ScriptConfig.MaxFOV * 5) then
+                            shortestDistance = distance
+                            closestPart = enemyPart
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return closestPart
+end
+
+-- ==========================================
+-- VÒNG LẶP CHẠY AIMBOT (CHỈ AIM KHI THẤY MỤC TIÊU)
+-- ==========================================
+RunService.RenderStepped:Connect(function()
+    if getgenv().ScriptConfig.AimbotEnabled then
+        local targetPart = GetTargetInFront()
+        if targetPart then
+            -- Bám chặt vào thân khi có người trước mặt
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+        end
+    end
+end)
